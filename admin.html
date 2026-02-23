@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Admin • Healthy Kitchen</title>
   <link rel="stylesheet" href="style.css"/>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -17,7 +18,12 @@
     </nav>
   </div>
 </header>
-
+<div class="panel" style="margin-top:12px;">
+  <h2>Admin Sign-In</h2>
+  <p class="muted">Sign in with an allowed Google account to edit posts.</p>
+  <div id="gSignIn"></div>
+  <div id="whoami" class="muted" style="margin-top:8px;"></div>
+</div>
 <main class="container">
   <section class="panel">
     <h1>Admin Dashboard</h1>
@@ -188,7 +194,7 @@
 
   async function loadAdminList() {
     msg("Loading…");
-    const j = await apiGet({ action: "admin_list", key: adminKeyEl.value || "" });
+    const j = await apiGet({ action:"admin_list", key: adminKeyEl.value || "", token: ID_TOKEN });
     if (!j.ok) {
       msg("Error: " + (j.error || "Unknown"));
       grid.innerHTML = "";
@@ -231,7 +237,7 @@
       coverUrl: document.getElementById("coverUrl").value.trim(),
     };
 
-    const j = await apiPost("save", payload, adminKeyEl.value || "");
+    const j = await apiPostAuthed("save", payload);
     if (!j.ok) return msg("Save failed: " + (j.error || "Unknown"));
     msg("Saved ✅");
     await loadAdminList();
@@ -242,12 +248,45 @@
     if (!id) return msg("Load a post first to delete.");
     if (!confirm("Delete this post?")) return;
     msg("Deleting…");
-    const j = await apiPost("delete", { id }, adminKeyEl.value || "");
+    const j = await apiPostAuthed("delete", { id });
     if (!j.ok) return msg("Delete failed: " + (j.error || "Unknown"));
     msg("Deleted ✅");
     clearForm(document.getElementById("type").value);
     await loadAdminList();
   });
+  
+  const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"; // <-- paste yours here
+  let ID_TOKEN = "";
+
+  function showWho(email) {
+    document.getElementById("whoami").textContent = email ? `Signed in as: ${email}` : "";
+  }
+
+  function parseJwtEmail(token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g,'+').replace(/_/g,'/')));
+      return payload.email || "";
+    } catch { return ""; }
+  }
+
+  window.onload = () => {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (resp) => {
+        ID_TOKEN = resp.credential || "";
+        const email = parseJwtEmail(ID_TOKEN);
+        showWho(email);
+      }
+    });
+
+    google.accounts.id.renderButton(
+      document.getElementById("gSignIn"),
+      { theme: "outline", size: "large" }
+    );
+  };
+
+  // Wrap apiPost to always include token in body (works with our Apps Script changes)
+  const apiPostAuthed = (action, body) => apiPost(action, { ...(body||{}), token: ID_TOKEN }, document.getElementById("adminKey")?.value || "");
 
   clearForm("recipe");
   loadAdminList();
