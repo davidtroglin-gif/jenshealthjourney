@@ -18,13 +18,14 @@
     </nav>
   </div>
 </header>
-<div class="panel" style="margin-top:12px;">
+
+<main class="container">
+  <div class="panel" style="margin-top:12px;">
   <h2>Admin Sign-In</h2>
   <p class="muted">Sign in with an allowed Google account to edit posts.</p>
   <div id="gSignIn"></div>
   <div id="whoami" class="muted" style="margin-top:8px;"></div>
 </div>
-<main class="container">
   <section class="panel">
     <h1>Admin Dashboard</h1>
     <p class="muted">
@@ -114,27 +115,81 @@
 
 <script src="app.js"></script>
 <script>
-  const msg = (t) => document.getElementById("msg").textContent = t || "";
+  // ====== CONFIG ======
+  const GOOGLE_CLIENT_ID = "https://davidtroglin-gif.github.io/jenshealthjourney/admin.html"; // <-- paste your real client id here
 
+  // ====== STATE ======
+  let ID_TOKEN = "";
+
+  const msg = (t) => (document.getElementById("msg").textContent = t || "");
   const grid = document.getElementById("grid");
   const adminKeyEl = document.getElementById("adminKey");
-
   const form = document.getElementById("postForm");
+
   const fields = ["id","type","title","slug","summary","tags","status","minutes","difficulty","content","coverUrl","publishedAt"];
 
+  // Wrap apiPost to always include token in body (Apps Script verifies it)
+  const apiPostAuthed = (action, body) =>
+    apiPost(action, { ...(body || {}), token: ID_TOKEN }, adminKeyEl?.value || "");
+
+  // ====== SIGN-IN ======
+  function showWho(email) {
+    document.getElementById("whoami").textContent = email ? `Signed in as: ${email}` : "";
+  }
+
+  function parseJwtEmail(token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+      return payload.email || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function initGoogleSignIn() {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (resp) => {
+        ID_TOKEN = resp.credential || "";
+        const email = parseJwtEmail(ID_TOKEN);
+        showWho(email);
+
+        // ✅ Now that we have a token, load admin list
+        loadAdminList();
+      }
+    });
+
+    google.accounts.id.renderButton(
+      document.getElementById("gSignIn"),
+      { theme: "outline", size: "large" }
+    );
+  }
+
+  // ====== UI HELPERS ======
   function setRecipeVisibility() {
     const isRecipe = document.getElementById("type").value === "recipe";
     document.getElementById("recipeFields").style.display = isRecipe ? "" : "none";
   }
   document.getElementById("type").addEventListener("change", setRecipeVisibility);
 
-  function clearForm(type="recipe") {
+  function clearForm(type = "recipe") {
     document.getElementById("formTitle").textContent = "Create / Edit";
-    fields.forEach(f => document.getElementById(f).value = "");
+    fields.forEach((f) => (document.getElementById(f).value = ""));
     document.getElementById("type").value = type;
     document.getElementById("ingredients").value = "";
     document.getElementById("steps").value = "";
     setRecipeVisibility();
+  }
+
+  function safeJsonArrayLocal(v) {
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    try {
+      const parsed = JSON.parse(v);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
 
   function fillForm(p) {
@@ -152,35 +207,25 @@
     document.getElementById("coverUrl").value = p.coverUrl || "";
     document.getElementById("publishedAt").value = p.publishedAt || "";
 
-    // ingredients/steps stored as JSON text in sheet
-    const ing = safeJsonArray(p.ingredients);
-    const st  = safeJsonArray(p.steps);
+    const ing = safeJsonArrayLocal(p.ingredients);
+    const st = safeJsonArrayLocal(p.steps);
     document.getElementById("ingredients").value = ing.join("\n");
     document.getElementById("steps").value = st.join("\n");
 
     setRecipeVisibility();
   }
 
-  function safeJsonArray(v) {
-    if (!v) return [];
-    if (Array.isArray(v)) return v;
-    try {
-      const parsed = JSON.parse(v);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
-  }
-
   function card(p) {
     const link = `post.html?type=${encodeURIComponent(p.type)}&slug=${encodeURIComponent(p.slug)}`;
-    const t = tagsToArray(p.tags).slice(0,4).map(x => `<span class="tag">${e(x)}</span>`).join("");
+    const t = tagsToArray(p.tags).slice(0, 4).map((x) => `<span class="tag">${e(x)}</span>`).join("");
     return `
       <div class="card">
         <h3>${e(p.title)}</h3>
-        <p class="muted">${e(p.summary||"")}</p>
+        <p class="muted">${e(p.summary || "")}</p>
         <div class="row">
           <div>
             <span class="pill">${e(p.type)}</span>
-            <span class="pill">${e(p.status||"")}</span>
+            <span class="pill">${e(p.status || "")}</span>
           </div>
           <a class="pill" href="${link}" target="_blank">View</a>
         </div>
@@ -192,34 +237,49 @@
     `;
   }
 
+  // ====== DATA ======
   async function loadAdminList() {
+    if (!ID_TOKEN) {
+      msg("Please sign in above to load admin data.");
+      grid.innerHTML = "";
+      return;
+    }
+
     msg("Loading…");
-    const j = await apiGet({ action:"admin_list", key: adminKeyEl.value || "", token: ID_TOKEN });
+    const j = await apiGet({
+      action: "admin_list",
+      key: adminKeyEl.value || "",
+      token: ID_TOKEN
+    });
+
     if (!j.ok) {
       msg("Error: " + (j.error || "Unknown"));
       grid.innerHTML = "";
       return;
     }
-    msg(`Loaded ${j.items.length} posts.`);
-    grid.innerHTML = j.items.map(card).join("");
 
-    grid.querySelectorAll("[data-edit]").forEach(btn => {
+    msg(`Loaded ${j.items.length} posts.`);
+    grid.innerHTML = (j.items || []).map(card).join("");
+
+    grid.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-edit");
-        const p = j.items.find(x => String(x.id) === String(id));
+        const p = (j.items || []).find((x) => String(x.id) === String(id));
         if (p) fillForm(p);
       });
     });
   }
 
+  // ====== EVENTS ======
   document.getElementById("reloadBtn").addEventListener("click", loadAdminList);
   document.getElementById("newRecipe").addEventListener("click", () => clearForm("recipe"));
   document.getElementById("newLiving").addEventListener("click", () => clearForm("living"));
 
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
-    msg("Saving…");
+    if (!ID_TOKEN) return msg("Please sign in first.");
 
+    msg("Saving…");
     const payload = {
       id: document.getElementById("id").value.trim(),
       type: document.getElementById("type").value,
@@ -231,8 +291,8 @@
       publishedAt: document.getElementById("publishedAt").value.trim(),
       minutes: document.getElementById("minutes").value.trim(),
       difficulty: document.getElementById("difficulty").value.trim(),
-      ingredients: document.getElementById("ingredients").value.split("\n").map(x => x.trim()).filter(Boolean),
-      steps: document.getElementById("steps").value.split("\n").map(x => x.trim()).filter(Boolean),
+      ingredients: document.getElementById("ingredients").value.split("\n").map((x) => x.trim()).filter(Boolean),
+      steps: document.getElementById("steps").value.split("\n").map((x) => x.trim()).filter(Boolean),
       content: document.getElementById("content").value,
       coverUrl: document.getElementById("coverUrl").value.trim(),
     };
@@ -246,7 +306,9 @@
   document.getElementById("deleteBtn").addEventListener("click", async () => {
     const id = document.getElementById("id").value.trim();
     if (!id) return msg("Load a post first to delete.");
+    if (!ID_TOKEN) return msg("Please sign in first.");
     if (!confirm("Delete this post?")) return;
+
     msg("Deleting…");
     const j = await apiPostAuthed("delete", { id });
     if (!j.ok) return msg("Delete failed: " + (j.error || "Unknown"));
@@ -254,42 +316,11 @@
     clearForm(document.getElementById("type").value);
     await loadAdminList();
   });
-  
-  const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"; // <-- paste yours here
-  let ID_TOKEN = "";
 
-  function showWho(email) {
-    document.getElementById("whoami").textContent = email ? `Signed in as: ${email}` : "";
-  }
-
-  function parseJwtEmail(token) {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g,'+').replace(/_/g,'/')));
-      return payload.email || "";
-    } catch { return ""; }
-  }
-
-  window.onload = () => {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: (resp) => {
-        ID_TOKEN = resp.credential || "";
-        const email = parseJwtEmail(ID_TOKEN);
-        showWho(email);
-      }
-    });
-
-    google.accounts.id.renderButton(
-      document.getElementById("gSignIn"),
-      { theme: "outline", size: "large" }
-    );
-  };
-
-  // Wrap apiPost to always include token in body (works with our Apps Script changes)
-  const apiPostAuthed = (action, body) => apiPost(action, { ...(body||{}), token: ID_TOKEN }, document.getElementById("adminKey")?.value || "");
-
+  // ====== INIT ======
   clearForm("recipe");
-  loadAdminList();
+  msg("Sign in above to manage posts.");
+  window.addEventListener("load", initGoogleSignIn);
 </script>
 </body>
 </html>
