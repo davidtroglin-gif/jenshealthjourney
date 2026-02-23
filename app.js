@@ -1,3 +1,39 @@
+const API_BASE = "https://script.google.com/macros/s/AKfycbylFT6t8aZ1v4KRWLI-LyCW1Dq8JgPPha92p4SBgGdl8BLxFSmYXBlO_w7JTN-ki23t5A/exec"; // <-- paste Web App URL
+
+async function apiGet(params) {
+  const url = new URL(API_BASE);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  return res.json();
+}
+
+async function apiPost(action, body, key="") {
+  const url = new URL(API_BASE);
+  url.searchParams.set("action", action);
+  if (key) url.searchParams.set("key", key);
+
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body || {}),
+  });
+  return res.json();
+}
+
+function qs(name) {
+  return new URLSearchParams(location.search).get(name);
+}
+
+function e(s) {
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+function tagsToArray(tags) {
+  return String(tags || "").split(",").map(x => x.trim()).filter(Boolean);
+}
+
 const DATA = {
   recipes: "data_recipes.json",
   living: "data_living.json",
@@ -200,4 +236,5 @@ function renderContent(lines) {
     if (t.startsWith("## ")) return `<h2>${escapeHTML(t.slice(3))}</h2>`;
     return `<p>${escapeHTML(t)}</p>`;
   }).join("");
+
 }
