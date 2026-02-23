@@ -3,47 +3,68 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Jennifer's Health Journey</title>
+  <title>Healthy Living • Healthy Kitchen</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-row">
-      <a class="brand" href="index.html">Jennifer's Health Journey</a>
-      <nav class="nav">
-        <a href="recipes.html">Recipes</a>
-        <a class="active" href="living.html">Healthy Living</a>
-	<a class="" href="#">Ketones</a>
-      </nav>
-    </div>
-  </header>
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="index.html">Healthy Kitchen</a>
+    <nav class="nav">
+      <a href="recipes.html">Recipes</a>
+      <a class="active" href="living.html">Healthy Living</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
 
-  <main class="container">
-    <div class="page-head">
-      <h1>Healthy Living</h1>
-      <p class="muted">Practical habits for real life.</p>
-    </div>
+<main class="container">
+  <div class="page-head">
+    <h1>Healthy Living</h1>
+    <p class="muted">Practical habits that actually fit real life.</p>
+  </div>
 
-    <div class="controls">
-      <input id="searchInput" class="input" placeholder="Search articles (e.g., sleep, walking, hydration)" />
-      <select id="tagSelect" class="select">
-        <option value="">All tags</option>
-      </select>
-    </div>
+  <div class="controls">
+    <input id="q" class="input" placeholder="Search (sleep, hydration, walking)">
+    <select id="tag" class="select">
+      <option value="">All tags</option>
+    </select>
+    <button id="go" class="btn">Search</button>
+  </div>
 
-    <div id="listGrid" class="grid"></div>
-  </main>
+  <div id="grid" class="grid"></div>
+</main>
 
-  <footer class="site-footer">
-    <div class="container footer-row">
-      <span class="muted">© <span id="year"></span> Health Journey</span>
-    </div>
-  </footer>
+<script src="app.js"></script>
+<script>
+  const grid = document.getElementById("grid");
+  const qEl = document.getElementById("q");
+  const tagEl = document.getElementById("tag");
 
-  <script src="app.js"></script>
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-    initListPage("living");
-  </script>
+  function fillTags(items){
+    const set = new Set();
+    items.forEach(p => tagsToArray(p.tags).forEach(t => set.add(t)));
+    [...set].sort().forEach(t=>{
+      const o=document.createElement("option");
+      o.value=t; o.textContent=t;
+      tagEl.appendChild(o);
+    });
+  }
+
+  async function load(){
+    const j = await apiGet({ action:"list", type:"living", status:"published", q:qEl.value.trim(), limit:"200" });
+    const items = j.items || [];
+    const tag = tagEl.value;
+    const filtered = tag ? items.filter(p => tagsToArray(p.tags).includes(tag)) : items;
+    grid.innerHTML = filtered.map(cardHTML).join("");
+    if (tagEl.options.length === 1) fillTags(items);
+  }
+
+  document.getElementById("go").addEventListener("click", load);
+  qEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") load(); });
+  tagEl.addEventListener("change", load);
+
+  load();
+</script>
 </body>
 </html>
