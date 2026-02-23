@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "simple-hydration-plan",
+    "title": "A Simple Hydration Plan That Actually Works",
+    "summary": "No fancy rules — just an easy routine you can stick to.",
+    "date": "2026-02-21",
+    "featured": true,
+    "tags": ["Hydration", "Habits", "Energy"],
+    "content": [
+      "## The plan",
+      "Drink a full glass when you wake up, one with each meal, and one mid-afternoon.",
+      "## Make it easy",
+      "Keep a bottle where you work and refill it at lunch.",
+      "## Quick win",
+      "If your pee is consistently dark yellow, add one more glass."
+    ]
+  },
+  {
+    "slug": "walking-10-min-rule",
+    "title": "The 10-Min Walking Rule",
+    "summary": "If you can do 10 minutes, you can build momentum.",
+    "date": "2026-02-17",
+    "featured": false,
+    "tags": ["Walking", "Cardio", "Stress"],
+    "content": [
+      "## Why it works",
+      "You’re lowering the activation energy — starting is the hardest part.",
+      "## How to use it",
+      "Commit to 10 minutes. If you feel good, keep going. If not, you still won."
+    ]
+  }
+]

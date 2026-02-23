@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jennifer's Health Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="index.html">Jennifer's Health Journey</a>
+      <nav class="nav">
+        <a href="recipes.html">Recipes</a>
+        <a href="living.html">Healthy Living</a>
+	<a href="ketones.html">Ketones</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Simple recipes + healthy living tips</h1>
+      <p>Quick meals, practical habits, and real-life wellness.</p>
+      <div class="hero-actions">
+        <a class="btn" href="recipes.html">Browse recipes</a>
+        <a class="btn btn-ghost" href="living.html">Read healthy living</a>
+	
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Featured</h2>
+        <p class="muted">Hand-picked to get you started</p>
+      </div>
+      <div id="featuredGrid" class="grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Latest</h2>
+        <p class="muted">Newest recipes and tips</p>
+      </div>
+      <div id="latestGrid" class="grid"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <span class="muted">© <span id="year"></span> Health Journery</span>
+      <span class="muted">Built with simple files — easy to maintain</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+    initHome();
+  </script>
+</body>
+</html>

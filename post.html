@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jennifer's Health Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="index.html">Jennifer's Health Journey</a>
+      <nav class="nav">
+        <a href="recipes.html">Recipes</a>
+        <a href="living.html">Healthy Living</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <a class="backlink" id="backlink" href="#">← Back</a>
+
+    <article class="post">
+      <div class="post-head">
+        <h1 id="title"></h1>
+        <div class="meta">
+          <span id="date" class="muted"></span>
+          <span id="time" class="pill"></span>
+          <span id="difficulty" class="pill"></span>
+        </div>
+        <div id="tags" class="tags"></div>
+      </div>
+
+      <div id="summary" class="summary"></div>
+
+      <div id="recipeBlocks" class="recipe-blocks"></div>
+
+      <div id="content" class="content"></div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <span class="muted">© <span id="year"></span> Health Journey</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+    initPostPage();
+  </script>
+</body>
+</html>

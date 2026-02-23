@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "15-min-chicken-bowl",
+    "title": "15-Min Chicken Bowl",
+    "summary": "High-protein bowl with veggies and a quick sauce.",
+    "date": "2026-02-20",
+    "featured": true,
+    "minutes": 15,
+    "difficulty": "Easy",
+    "tags": ["High Protein", "Quick", "Meal Prep"],
+    "ingredients": [
+      "1 lb cooked chicken (or rotisserie)",
+      "2 cups frozen mixed veggies",
+      "2 cups cooked rice (or cauliflower rice)",
+      "2 tbsp Greek yogurt",
+      "1 tbsp hot sauce",
+      "Salt + pepper"
+    ],
+    "steps": [
+      "Warm chicken and veggies in a skillet.",
+      "Mix yogurt + hot sauce + salt to make sauce.",
+      "Assemble bowls over rice and drizzle sauce."
+    ],
+    "content": [
+      "## Make it healthier",
+      "Swap rice for cauliflower rice or add extra veggies.",
+      "## Meal prep tip",
+      "Store sauce separately so it stays fresh."
+    ]
+  },
+  {
+    "slug": "overnight-oats-berry",
+    "title": "Overnight Oats (Berry)",
+    "summary": "Fast breakfast that tastes like dessert but fuels your day.",
+    "date": "2026-02-18",
+    "featured": true,
+    "minutes": 5,
+    "difficulty": "Easy",
+    "tags": ["Breakfast", "Fiber", "Quick"],
+    "ingredients": [
+      "1/2 cup rolled oats",
+      "1/2 cup milk (or almond milk)",
+      "1/3 cup Greek yogurt",
+      "1 tbsp chia seeds",
+      "1/2 cup berries",
+      "1 tsp honey (optional)"
+    ],
+    "steps": [
+      "Mix oats, milk, yogurt, and chia in a jar.",
+      "Top with berries, chill overnight.",
+      "Eat cold or warm it up."
+    ],
+    "content": [
+      "## Swap ideas",
+      "Try peanut butter + banana, or cocoa + strawberries."
+    ]
+  }
+]

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jennifer's Health Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="index.html">Jennifer's Health Journey</a>
+      <nav class="nav">
+        <a href="recipes.html">Recipes</a>
+        <a class="active" href="living.html">Healthy Living</a>
+	<a class="" href="#">Ketones</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-head">
+      <h1>Healthy Living</h1>
+      <p class="muted">Practical habits for real life.</p>
+    </div>
+
+    <div class="controls">
+      <input id="searchInput" class="input" placeholder="Search articles (e.g., sleep, walking, hydration)" />
+      <select id="tagSelect" class="select">
+        <option value="">All tags</option>
+      </select>
+    </div>
+
+    <div id="listGrid" class="grid"></div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <span class="muted">© <span id="year"></span> Health Journey</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+    initListPage("living");
+  </script>
+</body>
+</html>
