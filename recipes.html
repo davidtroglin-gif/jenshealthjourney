@@ -3,47 +3,73 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Jennifer's Health Journey</title>
+  <title>Recipes • Healthy Kitchen</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-row">
-      <a class="brand" href="index.html">Jennifer's Health Journey</a>
-      <nav class="nav">
-        <a class="active" href="recipes.html">Recipes</a>
-        <a href="living.html">Healthy Living</a>
-	<a href="#">Ketones</a>
-      </nav>
-    </div>
-  </header>
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="index.html">Healthy Kitchen</a>
+    <nav class="nav">
+      <a class="active" href="recipes.html">Recipes</a>
+      <a href="living.html">Healthy Living</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
 
-  <main class="container">
-    <div class="page-head">
-      <h1>Recipes</h1>
-      <p class="muted">Search and filter by tags.</p>
-    </div>
+<main class="container">
+  <div class="page-head">
+    <h1>Recipes</h1>
+    <p class="muted">Search by keyword and filter by tag.</p>
+  </div>
 
-    <div class="controls">
-      <input id="searchInput" class="input" placeholder="Search recipes (e.g., chicken, high protein, 15 min)" />
-      <select id="tagSelect" class="select">
-        <option value="">All tags</option>
-      </select>
-    </div>
+  <div class="controls">
+    <input id="q" class="input" placeholder="Search recipes (chicken, high protein, 15 min)">
+    <select id="tag" class="select">
+      <option value="">All tags</option>
+    </select>
+    <button id="go" class="btn">Search</button>
+  </div>
 
-    <div id="listGrid" class="grid"></div>
-  </main>
+  <div id="grid" class="grid"></div>
+</main>
 
-  <footer class="site-footer">
-    <div class="container footer-row">
-      <span class="muted">© <span id="year"></span> Health Journey</span>
-    </div>
-  </footer>
+<script src="app.js"></script>
+<script>
+  const grid = document.getElementById("grid");
+  const qEl = document.getElementById("q");
+  const tagEl = document.getElementById("tag");
 
-  <script src="app.js"></script>
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-    initListPage("recipes");
-  </script>
+  function fillTags(items){
+    const set = new Set();
+    items.forEach(p => tagsToArray(p.tags).forEach(t => set.add(t)));
+    [...set].sort().forEach(t=>{
+      const o=document.createElement("option");
+      o.value=t; o.textContent=t;
+      tagEl.appendChild(o);
+    });
+  }
+
+  async function load(){
+    const j = await apiGet({ action:"list", type:"recipe", status:"published", q:qEl.value.trim(), limit:"200" });
+    const items = j.items || [];
+
+    // tag filter client-side
+    const tag = tagEl.value;
+    const filtered = tag ? items.filter(p => tagsToArray(p.tags).includes(tag)) : items;
+
+    grid.innerHTML = filtered.map(cardHTML).join("");
+
+    // fill tags once
+    if (tagEl.options.length === 1) fillTags(items);
+  }
+
+  document.getElementById("go").addEventListener("click", load);
+  qEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") load(); });
+  tagEl.addEventListener("change", load);
+
+  load();
+</script>
 </body>
 </html>
