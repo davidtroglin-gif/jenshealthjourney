@@ -3,52 +3,95 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Jennifer's Health Journey</title>
+  <title>Post • Healthy Kitchen</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-row">
-      <a class="brand" href="index.html">Jennifer's Health Journey</a>
-      <nav class="nav">
-        <a href="recipes.html">Recipes</a>
-        <a href="living.html">Healthy Living</a>
-      </nav>
-    </div>
-  </header>
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="index.html">Healthy Kitchen</a>
+    <nav class="nav">
+      <a href="recipes.html">Recipes</a>
+      <a href="living.html">Healthy Living</a>
+      <a href="admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
 
-  <main class="container">
-    <a class="backlink" id="backlink" href="#">← Back</a>
+<main class="container">
+  <a class="backlink" id="backlink" href="#">← Back</a>
 
-    <article class="post">
-      <div class="post-head">
-        <h1 id="title"></h1>
-        <div class="meta">
-          <span id="date" class="muted"></span>
-          <span id="time" class="pill"></span>
-          <span id="difficulty" class="pill"></span>
-        </div>
-        <div id="tags" class="tags"></div>
+  <article class="post">
+    <div class="post-head">
+      <h1 id="title"></h1>
+      <div class="meta">
+        <span id="date" class="muted"></span>
+        <span id="mins" class="pill" style="display:none;"></span>
+        <span id="diff" class="pill" style="display:none;"></span>
       </div>
-
-      <div id="summary" class="summary"></div>
-
-      <div id="recipeBlocks" class="recipe-blocks"></div>
-
-      <div id="content" class="content"></div>
-    </article>
-  </main>
-
-  <footer class="site-footer">
-    <div class="container footer-row">
-      <span class="muted">© <span id="year"></span> Health Journey</span>
+      <div id="tags" class="tags"></div>
     </div>
-  </footer>
 
-  <script src="app.js"></script>
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-    initPostPage();
-  </script>
+    <div id="summary" class="summary"></div>
+
+    <div id="recipeBlocks" class="recipe-blocks" style="display:none;"></div>
+
+    <div id="content" class="content"></div>
+  </article>
+</main>
+
+<script src="app.js"></script>
+<script>
+  (async function(){
+    const type = qs("type");
+    const slug = qs("slug");
+
+    const back = document.getElementById("backlink");
+    back.href = type === "recipe" ? "recipes.html" : "living.html";
+
+    const j = await apiGet({ action:"get", type, slug });
+    if (!j.ok || !j.item) {
+      document.getElementById("title").textContent = "Not found";
+      return;
+    }
+    const p = j.item;
+
+    document.title = p.title + " • Healthy Kitchen";
+    document.getElementById("title").textContent = p.title || "";
+    document.getElementById("date").textContent = fmtDate(p.publishedAt || p.updatedAt || p.createdAt);
+
+    document.getElementById("tags").innerHTML = tagsToArray(p.tags).map(t => `<span class="tag">${e(t)}</span>`).join("");
+
+    document.getElementById("summary").textContent = p.summary || "";
+
+    const mins = document.getElementById("mins");
+    const diff = document.getElementById("diff");
+
+    if (p.minutes) { mins.style.display=""; mins.textContent = `${p.minutes} min`; }
+    if (p.difficulty) { diff.style.display=""; diff.textContent = p.difficulty; }
+
+    // Recipe blocks
+    if (type === "recipe") {
+      const ing = safeJsonArray(p.ingredients);
+      const steps = safeJsonArray(p.steps);
+
+      const blocks = document.getElementById("recipeBlocks");
+      blocks.style.display = "";
+      blocks.innerHTML = `
+        <div class="block">
+          <h3>Ingredients</h3>
+          <ul>${ing.map(x => `<li>${e(x)}</li>`).join("")}</ul>
+        </div>
+        <div class="block">
+          <h3>Steps</h3>
+          <ol>${steps.map(x => `<li>${e(x)}</li>`).join("")}</ol>
+        </div>
+      `;
+    }
+
+    // Content: allow simple HTML from admin (keep admin-only editing)
+    document.getElementById("content").innerHTML = p.content || "";
+  })();
+</script>
 </body>
 </html>
