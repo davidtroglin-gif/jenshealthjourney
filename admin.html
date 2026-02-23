@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin • Healthy Kitchen</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="index.html">Healthy Kitchen</a>
+    <nav class="nav">
+      <a class="active" href="admin.html">Admin</a>
+      <a href="recipes.html">Recipes</a>
+      <a href="living.html">Healthy Living</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <section class="panel">
+    <h1>Admin Dashboard</h1>
+    <p class="muted">
+      If you get “Not authorized”, open the Apps Script URL once in this browser and make sure you’re signed into the allowed Google account.
+    </p>
+
+    <div class="controls">
+      <input id="adminKey" class="input" placeholder="Admin key (only if you set Script Property ADMIN_KEY)"/>
+      <button class="btn" id="reloadBtn">Reload</button>
+      <button class="btn btn-ghost" id="newRecipe">+ New Recipe</button>
+      <button class="btn btn-ghost" id="newLiving">+ New Living</button>
+    </div>
+
+    <div id="msg" class="muted" style="margin-top:10px;"></div>
+
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="panel">
+    <h2 id="formTitle">Create / Edit</h2>
+    <form id="postForm" class="form">
+      <input type="hidden" id="id">
+      <label>Type</label>
+      <select class="select" id="type">
+        <option value="recipe">Recipe</option>
+        <option value="living">Healthy Living</option>
+      </select>
+
+      <label>Title</label>
+      <input class="input" id="title" required>
+
+      <label>Slug (optional)</label>
+      <input class="input" id="slug" placeholder="leave blank to auto-generate">
+
+      <label>Summary</label>
+      <textarea class="input" id="summary" rows="3"></textarea>
+
+      <label>Tags (comma separated)</label>
+      <input class="input" id="tags" placeholder="High Protein, Quick, Sleep">
+
+      <div class="grid-2">
+        <div>
+          <label>Status</label>
+          <select class="select" id="status">
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+        <div>
+          <label>PublishedAt (ISO optional)</label>
+          <input class="input" id="publishedAt" placeholder="2026-02-22T12:00:00.000Z">
+        </div>
+      </div>
+
+      <div id="recipeFields">
+        <div class="grid-2">
+          <div>
+            <label>Minutes</label>
+            <input class="input" id="minutes" type="number">
+          </div>
+          <div>
+            <label>Difficulty</label>
+            <input class="input" id="difficulty" placeholder="Easy / Medium / Hard">
+          </div>
+        </div>
+
+        <label>Ingredients (one per line)</label>
+        <textarea class="input" id="ingredients" rows="6"></textarea>
+
+        <label>Steps (one per line)</label>
+        <textarea class="input" id="steps" rows="6"></textarea>
+      </div>
+
+      <label>Content (for living posts; plain text or simple HTML)</label>
+      <textarea class="input" id="content" rows="10"></textarea>
+
+      <label>Cover Image URL (optional)</label>
+      <input class="input" id="coverUrl" placeholder="https://...">
+
+      <div class="actions">
+        <button class="btn" type="submit">Save</button>
+        <button class="btn btn-ghost" type="button" id="deleteBtn">Delete</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+  const msg = (t) => document.getElementById("msg").textContent = t || "";
+
+  const grid = document.getElementById("grid");
+  const adminKeyEl = document.getElementById("adminKey");
+
+  const form = document.getElementById("postForm");
+  const fields = ["id","type","title","slug","summary","tags","status","minutes","difficulty","content","coverUrl","publishedAt"];
+
+  function setRecipeVisibility() {
+    const isRecipe = document.getElementById("type").value === "recipe";
+    document.getElementById("recipeFields").style.display = isRecipe ? "" : "none";
+  }
+  document.getElementById("type").addEventListener("change", setRecipeVisibility);
+
+  function clearForm(type="recipe") {
+    document.getElementById("formTitle").textContent = "Create / Edit";
+    fields.forEach(f => document.getElementById(f).value = "");
+    document.getElementById("type").value = type;
+    document.getElementById("ingredients").value = "";
+    document.getElementById("steps").value = "";
+    setRecipeVisibility();
+  }
+
+  function fillForm(p) {
+    document.getElementById("formTitle").textContent = "Editing: " + (p.title || "");
+    document.getElementById("id").value = p.id || "";
+    document.getElementById("type").value = p.type || "recipe";
+    document.getElementById("title").value = p.title || "";
+    document.getElementById("slug").value = p.slug || "";
+    document.getElementById("summary").value = p.summary || "";
+    document.getElementById("tags").value = p.tags || "";
+    document.getElementById("status").value = p.status || "published";
+    document.getElementById("minutes").value = p.minutes || "";
+    document.getElementById("difficulty").value = p.difficulty || "";
+    document.getElementById("content").value = p.content || "";
+    document.getElementById("coverUrl").value = p.coverUrl || "";
+    document.getElementById("publishedAt").value = p.publishedAt || "";
+
+    // ingredients/steps stored as JSON text in sheet
+    const ing = safeJsonArray(p.ingredients);
+    const st  = safeJsonArray(p.steps);
+    document.getElementById("ingredients").value = ing.join("\n");
+    document.getElementById("steps").value = st.join("\n");
+
+    setRecipeVisibility();
+  }
+
+  function safeJsonArray(v) {
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    try {
+      const parsed = JSON.parse(v);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  }
+
+  function card(p) {
+    const link = `post.html?type=${encodeURIComponent(p.type)}&slug=${encodeURIComponent(p.slug)}`;
+    const t = tagsToArray(p.tags).slice(0,4).map(x => `<span class="tag">${e(x)}</span>`).join("");
+    return `
+      <div class="card">
+        <h3>${e(p.title)}</h3>
+        <p class="muted">${e(p.summary||"")}</p>
+        <div class="row">
+          <div>
+            <span class="pill">${e(p.type)}</span>
+            <span class="pill">${e(p.status||"")}</span>
+          </div>
+          <a class="pill" href="${link}" target="_blank">View</a>
+        </div>
+        <div class="tags">${t}</div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn btn-ghost" data-edit="${e(p.id)}">Edit</button>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadAdminList() {
+    msg("Loading…");
+    const j = await apiGet({ action: "admin_list", key: adminKeyEl.value || "" });
+    if (!j.ok) {
+      msg("Error: " + (j.error || "Unknown"));
+      grid.innerHTML = "";
+      return;
+    }
+    msg(`Loaded ${j.items.length} posts.`);
+    grid.innerHTML = j.items.map(card).join("");
+
+    grid.querySelectorAll("[data-edit]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-edit");
+        const p = j.items.find(x => String(x.id) === String(id));
+        if (p) fillForm(p);
+      });
+    });
+  }
+
+  document.getElementById("reloadBtn").addEventListener("click", loadAdminList);
+  document.getElementById("newRecipe").addEventListener("click", () => clearForm("recipe"));
+  document.getElementById("newLiving").addEventListener("click", () => clearForm("living"));
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    msg("Saving…");
+
+    const payload = {
+      id: document.getElementById("id").value.trim(),
+      type: document.getElementById("type").value,
+      title: document.getElementById("title").value.trim(),
+      slug: document.getElementById("slug").value.trim(),
+      summary: document.getElementById("summary").value.trim(),
+      tags: document.getElementById("tags").value.trim(),
+      status: document.getElementById("status").value,
+      publishedAt: document.getElementById("publishedAt").value.trim(),
+      minutes: document.getElementById("minutes").value.trim(),
+      difficulty: document.getElementById("difficulty").value.trim(),
+      ingredients: document.getElementById("ingredients").value.split("\n").map(x => x.trim()).filter(Boolean),
+      steps: document.getElementById("steps").value.split("\n").map(x => x.trim()).filter(Boolean),
+      content: document.getElementById("content").value,
+      coverUrl: document.getElementById("coverUrl").value.trim(),
+    };
+
+    const j = await apiPost("save", payload, adminKeyEl.value || "");
+    if (!j.ok) return msg("Save failed: " + (j.error || "Unknown"));
+    msg("Saved ✅");
+    await loadAdminList();
+  });
+
+  document.getElementById("deleteBtn").addEventListener("click", async () => {
+    const id = document.getElementById("id").value.trim();
+    if (!id) return msg("Load a post first to delete.");
+    if (!confirm("Delete this post?")) return;
+    msg("Deleting…");
+    const j = await apiPost("delete", { id }, adminKeyEl.value || "");
+    if (!j.ok) return msg("Delete failed: " + (j.error || "Unknown"));
+    msg("Deleted ✅");
+    clearForm(document.getElementById("type").value);
+    await loadAdminList();
+  });
+
+  clearForm("recipe");
+  loadAdminList();
+</script>
+</body>
+</html>
