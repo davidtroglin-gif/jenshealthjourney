@@ -119,6 +119,7 @@
   const GOOGLE_CLIENT_ID = "785843720306-oephekm6430t6d2jq06ti7885ib1a7fm.apps.googleusercontent.com"; // <-- paste your real client id here
 
   // ====== STATE ======
+  let ADMIN_SID = sessionStorage.getItem("admin_sid") || "";
   let ID_TOKEN = "";
 
   const msg = (t) => (document.getElementById("msg").textContent = t || "");
@@ -130,7 +131,7 @@
 
   // Wrap apiPost to always include token in body (Apps Script verifies it)
   const apiPostAuthed = (action, body) =>
-    apiPost(action, { ...(body || {}), token: ID_TOKEN }, adminKeyEl?.value || "");
+  apiPost(action, { ...(body || {}), token: ID_TOKEN, sid: ADMIN_SID }, ""); // no key every time
 
   // ====== SIGN-IN ======
   function showWho(email) {
@@ -145,6 +146,35 @@
       return "";
     }
   }
+
+  async function ensureAdminSession_() {
+  // already have a session
+  if (ADMIN_SID) return true;
+
+  // must have Google token first
+  if (!ID_TOKEN) return false;
+
+  // require key one-time (server will validate key+email and return sid)
+  const key = (adminKeyEl?.value || "").trim();
+  if (!key) {
+    msg("Enter Admin Key once, then click reload (or sign in again).");
+    return false;
+  }
+
+  msg("Starting admin session…");
+  const j = await apiPost("admin_login", { token: ID_TOKEN, key });
+
+  if (!j.ok) {
+    msg("Login failed: " + (j.error || "Unknown"));
+    return false;
+  }
+
+  ADMIN_SID = j.sid || "";
+  sessionStorage.setItem("admin_sid", ADMIN_SID);
+
+  msg("Admin session started ✅");
+  return true;
+}
 
   function initGoogleSignIn() {
     google.accounts.id.initialize({
@@ -238,37 +268,43 @@
   }
 
   // ====== DATA ======
-  async function loadAdminList() {
-    if (!ID_TOKEN) {
-      msg("Please sign in above to load admin data.");
-      grid.innerHTML = "";
-      return;
-    }
-
-    msg("Loading…");
-    const j = await apiGet({
-      action: "admin_list",
-      key: adminKeyEl.value || "",
-      token: ID_TOKEN
-    });
-
-    if (!j.ok) {
-      msg("Error: " + (j.error || "Unknown"));
-      grid.innerHTML = "";
-      return;
-    }
-
-    msg(`Loaded ${j.items.length} posts.`);
-    grid.innerHTML = (j.items || []).map(card).join("");
-
-    grid.querySelectorAll("[data-edit]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-edit");
-        const p = (j.items || []).find((x) => String(x.id) === String(id));
-        if (p) fillForm(p);
-      });
-    });
+ async function loadAdminList() {
+  if (!ID_TOKEN) {
+    msg("Please sign in above to load admin data.");
+    grid.innerHTML = "";
+    return;
   }
+
+  // NEW: make sure we have an admin session (sid). If not, create it using the admin key once.
+  const ok = await ensureAdminSession_();
+  if (!ok) {
+    grid.innerHTML = "";
+    return;
+  }
+
+  msg("Loading…");
+
+  // IMPORTANT: call your admin_list endpoint using POST (recommended) OR GET with sid.
+  // If your server has admin_list in doGet, keep apiGet; otherwise use apiPost.
+  const j = await apiPost("admin_list", { token: ID_TOKEN, sid: ADMIN_SID });
+
+  if (!j.ok) {
+    msg("Error: " + (j.error || "Unknown"));
+    grid.innerHTML = "";
+    return;
+  }
+
+  msg(`Loaded ${j.items.length} posts.`);
+  grid.innerHTML = (j.items || []).map(card).join("");
+
+  grid.querySelectorAll("[data-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-edit");
+      const p = (j.items || []).find((x) => String(x.id) === String(id));
+      if (p) fillForm(p);
+    });
+  });
+}
 
   // ====== EVENTS ======
   document.getElementById("reloadBtn").addEventListener("click", loadAdminList);
