@@ -270,11 +270,11 @@
 
   // ====== DATA ======
  async function loadAdminList() {
-  if (!ID_TOKEN) {
-    msg("Please sign in above to load admin data.");
-    grid.innerHTML = "";
-    return;
-  }
+  if (!ADMIN_SID && !ID_TOKEN) {
+  msg("Please sign in first.");
+  grid.innerHTML = "";
+  return;
+}
 
   // NEW: make sure we have an admin session (sid). If not, create it using the admin key once.
   const ok = await ensureAdminSession_();
