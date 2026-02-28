@@ -1,5 +1,9 @@
 const API_BASE = "https://script.google.com/macros/s/AKfycbylFT6t8aZ1v4KRWLI-LyCW1Dq8JgPPha92p4SBgGdl8BLxFSmYXBlO_w7JTN-ki23t5A/exec";
 
+// session shared across pages in same tab
+window.ADMIN_SID = sessionStorage.getItem("admin_sid") || "";
+window.ID_TOKEN  = sessionStorage.getItem("id_token") || "";
+
 async function apiGet(params) {
   const url = new URL(API_BASE);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
@@ -83,3 +87,4 @@ function cardHTML(p) {
     </a>
   `;
 }
+
