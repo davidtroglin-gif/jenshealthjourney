@@ -120,7 +120,7 @@
 
   // ====== STATE ======
   let ADMIN_SID = sessionStorage.getItem("admin_sid") || "";
-  let ID_TOKEN = "";
+  let ID_TOKEN = sessionStorage.getItem("id_token") || "";
 
   const msg = (t) => (document.getElementById("msg").textContent = t || "");
   const grid = document.getElementById("grid");
@@ -181,6 +181,7 @@
       client_id: GOOGLE_CLIENT_ID,
       callback: (resp) => {
         ID_TOKEN = resp.credential || "";
+        sessionStorage.setItem("id_token", ID_TOKEN);
         const email = parseJwtEmail(ID_TOKEN);
         showWho(email);
 
