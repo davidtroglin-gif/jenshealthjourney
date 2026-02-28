@@ -162,7 +162,7 @@
   }
 
   msg("Starting admin session…");
-  const j = await apiPost("admin_login", { token: ID_TOKEN, key });
+  const j = await apiPost("admin_login", { token: ID_TOKEN }, key);
 
   if (!j.ok) {
     msg("Login failed: " + (j.error || "Unknown"));
